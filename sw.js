@@ -1,5 +1,5 @@
 "use strict";
-const CACHE="prompt-notebook-public-shell-v2-"+new URL(self.registration.scope).pathname;
+const CACHE="prompt-notebook-public-shell-v3-"+new URL(self.registration.scope).pathname;
 const ASSETS=["./","./index.html","./styles.css","./storage.js","./app.js","./manifest.webmanifest","./icon.svg"];
 self.addEventListener("install",event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));});
 self.addEventListener("activate",event=>{
