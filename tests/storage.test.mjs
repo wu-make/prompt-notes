@@ -1,0 +1,26 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+import {IDBFactory} from 'fake-indexeddb';
+const code=await readFile(new URL('../storage.js',import.meta.url),'utf8');
+const app=await readFile(new URL('../app.js',import.meta.url),'utf8');
+const validateCode=app.slice(app.indexOf('const COLORS ='),app.indexOf('const PATHS ='))+app.slice(app.indexOf('function validateBackup('),app.indexOf('function encodeState('));
+function memory(){const data=new Map();return {data,getItem:key=>data.get(key)??null,setItem:(key,value)=>data.set(key,String(value))};}
+function store({idb=new IDBFactory(),local=memory()}={}){
+  const context=vm.createContext({indexedDB:idb,localStorage:local,setTimeout,clearTimeout,console});
+  vm.runInContext(validateCode+code+'\nthis.store=new NotebookRecords("fixture",validateBackup);',context);return {records:context.store,local,idb};
+}
+const fixture=(revision=1,title='测试笔记')=>({format:'prompt-notebook',version:1,exportedAt:new Date(1700000000000+revision*60000).toISOString(),notes:[{id:'fixture-note-00001',title,content:'只在本机保存\n第二行',color:'blue',pinned:false,createdAt:1700000000000,updatedAt:1700000000000+revision,deletedAt:null}]});
+const plain=value=>JSON.parse(JSON.stringify(value));
+test('local write is synchronous and keeps previous valid snapshot',()=>{const {records,local}=store();records.saveLocal(fixture(1));records.saveLocal(fixture(2));assert.equal(JSON.parse(local.getItem('fixture')).exportedAt,fixture(2).exportedAt);assert.deepEqual(plain(records.localFallback()),fixture(1));});
+test('database survives fresh store instance, validates content and keeps history',async()=>{const first=store();await first.records.save(fixture(1));await first.records.save(fixture(2));const reopened=store({idb:first.idb,local:first.local});const versions=await reopened.records.list();assert.deepEqual(plain(versions[0]),fixture(2));assert.ok(versions.some(v=>v.exportedAt===fixture(1).exportedAt));});
+test('serialized and cross-instance late writes cannot overwrite newer revisions',async()=>{const first=store();await Promise.all([first.records.save(fixture(3)),first.records.save(fixture(2)),first.records.save(fixture(1))]);const second=store({idb:first.idb});await second.records.save(fixture(2));assert.equal((await second.records.list())[0].exportedAt,fixture(3).exportedAt);});
+test('a failed transaction abort preserves previous durable data',async()=>{const {records}=store();await records.save(fixture(1));await assert.rejects(records.transaction('readwrite',s=>{s.put(records.pack(fixture(2)),'latest');throw Error('simulated disk failure');}));assert.equal((await records.list())[0].exportedAt,fixture(1).exportedAt);});
+test('corrupt latest copy is rejected; earlier verified recovery remains available',async()=>{const {records}=store();await records.save(fixture(1));await records.save(fixture(2));await records.transaction('readwrite',s=>s.put({text:'{"format":"corrupted"}',checksum:'wrong'},'latest'));assert.equal((await records.list())[0].exportedAt,fixture(1).exportedAt);});
+test('local quota failure does not stop independent IndexedDB save',async()=>{const local={getItem:()=>null,setItem(){throw Error('QuotaExceededError');}};const {records}=store({local});assert.throws(()=>records.saveLocal(fixture(1)),/Quota/);await records.save(fixture(1));assert.deepEqual(plain((await records.list())[0]),fixture(1));});
+test('local previous snapshot survives when main value is corrupted',()=>{const {records,local}=store();records.saveLocal(fixture(1));records.saveLocal(fixture(2));local.setItem('fixture','{invalid');assert.deepEqual(plain(records.localFallback()),fixture(1));});
+test('bad records and duplicate IDs cannot enter either storage',async()=>{const {records}=store();const value=fixture(1);value.notes.push(value.notes[0]);assert.throws(()=>records.saveLocal(value));assert.throws(()=>records.save(value));assert.equal((await records.list()).length,0);});
+test('database permission errors reject promptly rather than hanging',async()=>{const {records}=store({idb:{open(){throw Error('SecurityError');}}});await assert.rejects(records.list(),/SecurityError/);});
+test('historical records remain bounded and preserve Unicode and recycle-bin metadata',async()=>{const {records}=store();for(let i=1;i<=12;i++){const value=fixture(i,'科研 🔬 提示词 '+i);value.notes[0].deletedAt=i%2?null:1700000000000;value.notes[0].pinned=true;await records.save(value);}const versions=await records.list();assert.ok(versions.length<=7);assert.equal(versions[0].notes[0].title,'科研 🔬 提示词 12');assert.equal(versions[0].notes[0].deletedAt,1700000000000);assert.equal(versions[0].notes[0].pinned,true);});
+test('public package is blank and contains no embedded offline personal data or remote scripts',async()=>{const html=await readFile(new URL('../index.html',import.meta.url),'utf8');const seed=JSON.parse(html.match(/<script id="initial-notes" type="application\/json">([\s\S]*?)<\/script>/)[1]);assert.equal(seed.notes.length,0);assert.ok(!/__INITIAL_NOTES__|__BOOK_KEY__/.test(html+app));assert.ok(!/<script[^>]+src=["']https?:/i.test(html));assert.ok(!/fetch\s*\(|XMLHttpRequest|sendBeacon|WebSocket/.test(app+code));assert.match(html,/script-src 'self'/);});
