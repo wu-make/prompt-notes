@@ -212,9 +212,9 @@ function renameNote(id) {
 }
 function deleteNote(id){const note=state.notes.find(n=>n.id===id);if(!note)return;showDialog("删除这条笔记？",[paragraph(`「${note.title}」将移入回收站，之后仍可恢复。`)],"删除笔记",()=>{if(!updateNote(id,{deletedAt:Date.now()}))return false;if(activeId===id)activeId=null;render();showToast("笔记已移入回收站。",id);return true;},{danger:true});}
 function clearTrash(){dialogTargets=state.notes.filter(n=>n.deletedAt!==null).map(n=>({id:n.id,updatedAt:n.updatedAt,deletedAt:n.deletedAt}));if(!dialogTargets.length)return;
-  showDialog("清空回收站？",[paragraph(`将永久删除回收站中的全部 ${dialogTargets.length} 条笔记，清空后无法通过回收站恢复。主页中的笔记不会被删除。`),paragraph("历史恢复点和已导出的备份可能仍保留旧笔记。如需保留副本，请先取消并导出备份。","policy")],"永久清空",()=>{let removed=0;if(!commit(notes=>{for(let i=notes.length-1;i>=0;i--){const n=notes[i];if(n.deletedAt!==null && dialogTargets.some(t=>t.id===n.id && t.updatedAt===n.updatedAt && t.deletedAt===n.deletedAt)){notes.splice(i,1);removed++;}}}))return false;render();showToast(`已永久清除 ${removed} 条笔记。`);return true;},{danger:true});
+  showDialog("清空回收站？",[paragraph(`将永久删除回收站中的全部 ${dialogTargets.length} 条笔记，清空后无法通过回收站恢复。主页中的笔记不会被删除。`),paragraph("已导出的备份可能仍保留旧笔记。如需保留副本，请先取消并导出备份。","policy")],"永久清空",()=>{let removed=0;if(!commit(notes=>{for(let i=notes.length-1;i>=0;i--){const n=notes[i];if(n.deletedAt!==null && dialogTargets.some(t=>t.id===n.id && t.updatedAt===n.updatedAt && t.deletedAt===n.deletedAt)){notes.splice(i,1);removed++;}}}))return false;render();showToast(`已永久清除 ${removed} 条笔记。`);return true;},{danger:true});
 }
-function exportBackup(){try{localStorage.setItem(BOOK_KEY+"-last-backup",String(Date.now()));}catch{}const link=document.createElement("a");const url=URL.createObjectURL(new Blob([encodeState(snapshot())],{type:"application/json"}));link.href=url;link.download="提示词笔记备份-"+new Date().toLocaleDateString("sv-SE")+".json";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);showToast(`已导出 ${state.notes.length} 条笔记（含回收站）。`);}
+function exportBackup(){const link=document.createElement("a");const url=URL.createObjectURL(new Blob([encodeState(snapshot())],{type:"application/json"}));link.href=url;link.download="提示词笔记备份-"+new Date().toLocaleDateString("sv-SE")+".json";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);showToast(`已导出 ${state.notes.length} 条笔记（含回收站）。`);}
 async function selectImport(file){if(!file)return;try{if(file.size>10*1024*1024)throw Error("备份文件不能超过 10 MB。");const backup=validateBackup(JSON.parse((await file.text()).replace(/^\uFEFF/,"")));pendingImport=backup;const trash=backup.notes.filter(n=>n.deletedAt!==null).length;
     showDialog("导入备份",[paragraph(`已读取 ${backup.notes.length} 条笔记：${backup.notes.length-trash} 条普通笔记，${trash} 条回收站笔记。`),paragraph("只添加新笔记，不覆盖已有笔记；重复导入会自动跳过。","policy")],"确认导入",()=>{if(readOnly && !tabBlocked){readOnly=false;$("fatal").hidden=true;}let added=0;if(!commit(notes=>{const ids=new Set(notes.map(n=>n.id));for(const n of backup.notes)if(!ids.has(n.id)){notes.push({...n});ids.add(n.id);added++;}}))return false;render();showToast(`导入完成：新增 ${added} 条，跳过 ${backup.notes.length-added} 条重复笔记。`);return true;});
   }catch(error){showToast(error instanceof SyntaxError?"JSON 格式错误，尚未导入任何内容。":error.message);}finally{$("import-file").value="";}}
@@ -267,15 +267,7 @@ async function restoreLinkedFile(){
 }
 
 const records=new NotebookRecords(BOOK_KEY,validateBackup);
-let mirrorPending=0,mirrorError="",mirrorReady=false,persistent=false,tabBlocked=false,hadCache=false;
-
-function protectionStatus(){
-  const label=persistent?"已获浏览器持久存储保护":"尚未获持久存储保护，可点击“保护本机存储”申请";
-  let last=0;try{last=Number(localStorage.getItem(BOOK_KEY+"-last-backup")) || 0;}catch{}
-  const reminder=state?.notes.length && (!last || Date.now()-last>7*86400000)?"建议现在导出一份独立备份。":"请定期导出备份，或关联本地数据文件。";
-  $("protection-status").textContent=label+"。"+reminder;
-  $("protect").disabled=persistent;$("protect").textContent=persistent?"存储已保护":"保护本机存储";
-}
+let mirrorPending=0,mirrorError="",mirrorReady=false,tabBlocked=false,hadCache=false;
 function saveStatus(){
   baseSaveStatus();
   if(tabBlocked){$("save-bar").classList.add("error");$("save-message").textContent="此浏览器已有一个笔记本窗口正在编辑。当前窗口仅供查看；关闭另一窗口后刷新本页即可编辑。";}
@@ -286,7 +278,6 @@ function saveStatus(){
   }
   if(mirrorPending && !diskPending)$("editor-status").textContent="已快速保存，正在写入本机副本…";
   else if(mirrorError)$("editor-status").textContent="已保留笔记，请检查上方保存提示";
-  protectionStatus();
 }
 function queueMirror(){
   if(!mirrorReady || tabBlocked)return Promise.resolve();
@@ -303,40 +294,14 @@ async function acquireWriteLock(){
   });
 }
 function safetyInfo(){
-  showDialog("保存与恢复",[
+  showDialog("保存说明",[
     paragraph("笔记只保存在这台设备、当前浏览器的网站存储中。我们没有笔记服务器、登录系统或笔记上传接口；GitHub 仅提供网页文件。"),
-    paragraph("每次修改会立即快速保存，再写入第二份本机数据库；可通过“历史恢复”选择近期恢复点。回收站中的笔记也会保存。"),
-    paragraph("请点击“保护本机存储”，降低浏览器因空间不足而自动清理数据的风险。是否批准由浏览器决定；无痕模式不适合长期保存。"),
+    paragraph("笔记会自动保存在当前浏览器，下次打开可以继续使用。删除的笔记会进入回收站，可以在那里恢复。"),
     paragraph("本机的两份存储仍可能同时被清除。主动清除网站数据、卸载浏览器或设备损坏时，需要独立文件备份恢复。建议关联本地数据文件，或每周导出备份。","policy"),
     paragraph("更换浏览器、设备或网址不会自动同步。共用同一浏览器配置的人也能看到这里的笔记；这不是加密保险箱。")
   ],"知道了",()=>true);
 }
-async function protectStorage(){
-  try{
-    if(!navigator.storage?.persist){showToast("此浏览器不支持申请持久存储，请使用独立文件备份。");return;}
-    persistent=await navigator.storage.persist();protectionStatus();
-    showToast(persistent?"浏览器已批准持久存储。仍请保留独立文件备份。":"浏览器尚未批准。笔记仍在本机，请关联文件或定期导出备份。");
-  }catch{showToast("无法申请存储保护，请用独立文件备份保留笔记。");}
-}
-async function historyDialog(){
-  try{
-    const versions=await records.list();
-    if(!versions.length){showToast("暂时没有可用恢复点。编辑笔记后会自动生成。");return;}
-    const choices=versions.slice(0,7).map(version=>{
-      const label=new Date(version.exportedAt).toLocaleString("zh-CN")+" · "+version.notes.length+" 条笔记";
-      const choice=button(label,"button secondary history-choice",null,()=>{
-        showDialog("恢复这个版本？",[paragraph(label),paragraph("当前笔记将替换为这个版本；当前版本会先保留到本机恢复点。建议先导出一份当前备份。","policy")],"恢复版本",()=>{
-          if(tabBlocked)return false;
-          const wasReadOnly=readOnly;readOnly=false;
-          if(!commit(notes=>notes.splice(0,notes.length,...version.notes.map(n=>({...n}))))){readOnly=wasReadOnly;return false;}
-          $("fatal").hidden=true;activeId=null;render();showToast("已恢复所选版本，并保存为新的当前版本。");return true;
-        });
-      });choice.disabled=tabBlocked || booting;return choice;
-    });
-    showDialog("历史恢复",[paragraph("以下副本仅保存在当前浏览器中。清除网站数据会连同恢复点一起清除。"),...choices],"关闭",()=>true);
-  }catch{showToast("历史恢复暂时不可用。当前笔记不会被修改，请导出备份。");}
-}
-$("protect").onclick=()=>void protectStorage();$("history").onclick=()=>void historyDialog();$("safety").onclick=safetyInfo;
+$("safety").onclick=safetyInfo;
 window.addEventListener("beforeunload",event=>{if(mirrorPending || cacheError && mirrorError){event.preventDefault();event.returnValue="";}});
 window.addEventListener("online",()=>showToast("网络已恢复。笔记仍只保存在本机。"));
 
@@ -358,9 +323,8 @@ async function boot(){
     }
   }
   booting=false;
-  if(readOnly){$("fatal").hidden=false;$("fatal").textContent="无法安全读取已有笔记。请打开本地数据文件或使用历史恢复；现有存储未被清空。";}
+  if(readOnly){$("fatal").hidden=false;$("fatal").textContent="无法安全读取已有笔记。请打开本地数据文件或导入备份；现有存储未被清空。";}
   render();
-  navigator.storage?.persisted?.().then(value=>{persistent=value;protectionStatus();}).catch(()=>{});
   if(!tabBlocked)void restoreLinkedFile();
   if("serviceWorker" in navigator && isSecureContext){
     navigator.serviceWorker.register("./sw.js").catch(()=>{showToast("离线缓存暂时不可用，笔记保存不受影响。");});

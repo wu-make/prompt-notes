@@ -18,10 +18,10 @@
   <div class="heading"><div><p class="eyebrow">MY NOTEBOOK</p><h1>我的提示词 <span class="count" id="note-count">0</span></h1></div><button id="new-note" class="button primary"><span data-icon="plus"></span>新建笔记</button></div>
   <div id="save-bar" class="save-bar" role="status"><p id="save-message">正在读取本机笔记…</p><div class="save-actions"><button id="open-file" class="button secondary"><span data-icon="folder"></span>打开数据文件</button><button id="retry-file" class="button secondary" hidden>重新允许保存</button></div></div>
   <button id="back" class="back" hidden><span data-icon="back"></span>返回主页</button>
-  <aside class="privacy-info"><span>你的笔记只保存在当前设备的此浏览器中，不上传 GitHub。换设备不会自动同步。</span><button id="safety" class="text-button">保存与恢复</button></aside>
+  <aside class="privacy-info"><span>你的笔记只保存在当前设备的此浏览器中，不上传 GitHub。换设备不会自动同步。</span><button id="safety" class="text-button">保存说明</button></aside>
 <section class="workspace" aria-label="提示词笔记本">
     <div id="home" class="home">
-      <div class="tools"><div class="search"><span data-icon="search"></span><input id="search" aria-label="搜索笔记" placeholder="搜索标题或内容…"><button id="clear-search" class="icon-button" aria-label="清空搜索" hidden><span data-icon="x"></span></button></div><div class="backup-actions"><button id="protect" class="button secondary">保护本机存储</button><button id="history" class="button secondary">历史恢复</button><button id="export" class="button secondary"><span data-icon="download"></span>导出备份</button><button id="import" class="button secondary"><span data-icon="upload"></span>导入备份</button></div></div>
+      <div class="tools"><div class="search"><span data-icon="search"></span><input id="search" aria-label="搜索笔记" placeholder="搜索标题或内容…"><button id="clear-search" class="icon-button" aria-label="清空搜索" hidden><span data-icon="x"></span></button></div><div class="backup-actions"><button id="export" class="button secondary"><span data-icon="download"></span>导出备份</button><button id="import" class="button secondary"><span data-icon="upload"></span>导入备份</button></div></div>
       <nav class="nav" aria-label="笔记分类"><button data-scope="all" aria-pressed="true">全部笔记<span id="all-count">0</span></button><button data-scope="favorites" aria-pressed="false"><span data-icon="star"></span>收藏置顶<span id="favorite-count">0</span></button><button data-scope="trash" aria-pressed="false"><span data-icon="trash"></span>回收站<span id="trash-count">0</span></button></nav>
       <div class="intro"><h2 id="scope-title">全部笔记</h2><div class="intro-right"><p id="scope-hint">点击标题打开内容，收藏的笔记会排在最前面。</p><button id="clear-trash" class="button danger-outline" hidden><span data-icon="trash"></span>一键清空</button></div></div>
       <ul id="grid" class="grid" aria-label="笔记标题列表"></ul><div id="empty" class="empty" hidden><span id="empty-icon"></span><h2 id="empty-title"></h2><p id="empty-hint"></p></div>
@@ -29,7 +29,7 @@
     <div id="editor" hidden><div id="tabs" class="tabs" role="tablist" aria-label="提示词笔记"></div><div class="editor-toolbar"><div class="editor-title"><span id="editor-symbol" class="symbol" data-icon="file"></span><div><button id="rename-title" class="title-button" aria-label="重命名当前笔记"><h2 id="editor-title"></h2><span data-icon="pencil"></span></button><p id="editor-status" class="editor-status">已保存</p></div></div><div class="editor-buttons"><button id="copy" class="button primary"><span data-icon="copy"></span>复制内容</button><button id="editor-menu" class="button secondary" aria-label="当前笔记选项" aria-haspopup="menu"><span data-icon="more"></span></button></div></div><div class="writing"><label for="content">提示词内容</label><textarea id="content" spellcheck="false" maxlength="200000" placeholder="在这里粘贴或写下你的提示词…"></textarea></div><div class="editor-footer"><span>Ctrl / ⌘ + S 保存</span><span id="characters">0 字符</span></div></div>
     <div id="fatal" class="fatal" hidden role="alert"></div>
   </section>
-  <p id="protection-status" class="protection-status" role="status"></p><footer class="footer"><span>右键笔记可重命名、换色或删除。</span><span>支持离线打开 · 无账号 · 无笔记上传</span></footer>
+  <footer class="footer"><span>右键笔记可重命名、换色或删除。</span><span>支持离线打开 · 无账号 · 无笔记上传</span></footer>
 </main>
 <div id="menu" class="menu" role="menu" aria-label="管理笔记" hidden></div>
 <dialog id="dialog" class="dialog" aria-labelledby="dialog-title"><form id="dialog-form"><div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" id="dialog-close" class="icon-button" aria-label="关闭弹窗"><span data-icon="x"></span></button></div><div id="dialog-body"></div><div class="dialog-actions"><button type="button" id="cancel" class="button secondary">取消</button><button type="submit" id="confirm" class="button primary">确认</button></div></form></dialog>
@@ -38,6 +38,6 @@
 <noscript>请在浏览器中允许此本地网页运行 JavaScript。笔记本不使用任何网络服务。</noscript>
 <script id="initial-notes" type="application/json">{"format":"prompt-notebook","version":1,"exportedAt":"1970-01-01T00:00:00.000Z","notes":[]}</script>
 <script src="./storage.js" defer></script>
-<script src="./app.js" defer></script>
+<script src="./app.js?v=4" defer></script>
 </body>
 </html>
