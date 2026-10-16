@@ -1,10 +1,18 @@
-# 提示词笔记本
+# 提示词笔记本 · Prompt Notes
+
+一个轻量的提示词管理工具（Prompt Manager），帮你收集、整理和复用 ChatGPT、Claude、Gemini 等 AI 工具的常用提示词。本地优先，打开就能用。
+
+A lightweight, local-first prompt manager. Save, search, organize and copy your AI prompts — no account required, notes stay in your browser.
 
 好用的提示词，值得有个随手就能找到的地方。
 
 把写作、学习、编程时反复用到的提示词放进来，起个名字，选个颜色。下次需要时，搜一下、点开、复制，就能接着用。
 
 **[打开提示词笔记本 →](https://wu-make.github.io/prompt-notes/)**
+
+![提示词笔记本主页：支持搜索笔记、颜色分类、收藏置顶和备份导入导出](docs/images/prompt-notes-home.jpg)
+
+*主页预览，图中为演示笔记。打开网站后，可以建立自己的提示词库。*
 
 免费使用，无需注册，也不用安装。把网址加入收藏夹，就是你自己的提示词本。
 
@@ -46,3 +54,7 @@
 想让笔记另外保存成电脑里的文件，可以在支持的 Chrome、Edge 浏览器中点击右上角「保存到本地文件」，选好位置，后续修改也会写入这个文件。再次打开时，可以用「打开数据文件」继续使用。
 
 日常使用时，也可以点击「保护本机存储」申请浏览器的存储保护。想换一台电脑继续整理，就导出备份，在新电脑上打开网站后导入。网页版和离线版使用相同的备份格式，可以互相导入。
+
+## 觉得顺手，就留个 Star
+
+如果它帮你省下了翻找提示词的时间，欢迎点一下仓库右上角的 **Star**，也方便以后找到这个项目。用着有什么想法，可以到 [Issues](https://github.com/wu-make/prompt-notes/issues) 聊聊；也欢迎把它分享给同样经常使用 AI 的朋友。
